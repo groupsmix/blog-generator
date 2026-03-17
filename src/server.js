@@ -5,6 +5,19 @@ const { listPostsByStatus } = require('./store');
 const app = express();
 app.use(express.json());
 
+// Security headers
+app.use((_req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  }
+  next();
+});
+
 // POST /api/schedule — schedule a post
 app.post('/api/schedule', (req, res) => {
   const { slug, scheduledFor } = req.body;
@@ -64,11 +77,22 @@ app.get('/api/published', (_req, res) => {
   return res.json({ count: posts.length, posts });
 });
 
+// 404 handler for unknown routes
+app.use((_req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// Global error handler — log minimally, never expose internals
+app.use((err, _req, res, _next) => {
+  console.error(`[error] ${err.message || 'Unexpected error'}`);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
 const PORT = process.env.PORT || 3000;
 
 function start() {
   app.listen(PORT, () => {
-    console.log(`Blog API server running on http://localhost:${PORT}`);
+    console.log(`Blog API server running on port ${PORT}`);
   });
 }
 
