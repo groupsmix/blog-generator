@@ -15,6 +15,26 @@ function validateSlugExists(slug) {
 /**
  * Validate that a post can be scheduled.
  */
+/**
+ * Validate affiliateExchanges field if present.
+ * Must be an array of objects with slug and name.
+ */
+function validateAffiliateExchanges(affiliateExchanges) {
+  if (!affiliateExchanges) return { valid: true };
+  if (!Array.isArray(affiliateExchanges)) {
+    return { valid: false, error: 'affiliateExchanges must be an array.' };
+  }
+  for (const entry of affiliateExchanges) {
+    if (!entry.slug || typeof entry.slug !== 'string') {
+      return { valid: false, error: 'Each affiliateExchanges entry must have a string "slug".' };
+    }
+    if (!entry.name || typeof entry.name !== 'string') {
+      return { valid: false, error: 'Each affiliateExchanges entry must have a string "name".' };
+    }
+  }
+  return { valid: true };
+}
+
 function validateCanSchedule(slug, scheduledFor) {
   const result = validateSlugExists(slug);
   if (!result.valid) return result;
@@ -36,6 +56,10 @@ function validateCanSchedule(slug, scheduledFor) {
   if (date <= new Date()) {
     return { valid: false, error: `scheduledFor must be a future datetime. Got: ${scheduledFor}` };
   }
+
+  // Validate affiliateExchanges if present
+  const aeResult = validateAffiliateExchanges(post.affiliateExchanges);
+  if (!aeResult.valid) return aeResult;
 
   return { valid: true, post };
 }
@@ -72,6 +96,7 @@ function validateCanUnschedule(slug) {
 
 module.exports = {
   validateSlugExists,
+  validateAffiliateExchanges,
   validateCanSchedule,
   validateCanPublishNow,
   validateCanUnschedule,
